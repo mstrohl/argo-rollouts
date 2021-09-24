@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: ReplicaSet
 metadata:
   annotations:
@@ -19,7 +19,7 @@ metadata:
     name: rollout-experiment-analysis
     uid: a17d1089-fae6-11e9-a15b-42010aa80033
   resourceVersion: "29254042"
-  selfLink: /apis/extensions/v1beta1/namespaces/jesse-test/replicasets/rollout-experiment-analysis-6f646bf7b7
+  selfLink: /apis/networking.k8s.io/v1/namespaces/jesse-test/replicasets/rollout-experiment-analysis-6f646bf7b7
   uid: e4f986e6-fae6-11e9-a15b-42010aa80033
 spec:
   replicas: 1

@@ -16,7 +16,7 @@ import (
 	"github.com/undefinedlabs/go-mpatch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -91,7 +91,7 @@ type fixture struct {
 	analysisTemplateLister        []*v1alpha1.AnalysisTemplate
 	replicaSetLister              []*appsv1.ReplicaSet
 	serviceLister                 []*corev1.Service
-	ingressLister                 []*extensionsv1beta1.Ingress
+	ingressLister                 []*networkingv1.Ingress
 	// Actions expected to happen on the client.
 	kubeactions []core.Action
 	actions     []core.Action
@@ -516,7 +516,7 @@ func (f *fixture) newController(resync resyncFunc) (*Controller, informers.Share
 		ClusterAnalysisTemplateInformer: i.Argoproj().V1alpha1().ClusterAnalysisTemplates(),
 		ReplicaSetInformer:              k8sI.Apps().V1().ReplicaSets(),
 		ServicesInformer:                k8sI.Core().V1().Services(),
-		IngressInformer:                 k8sI.Extensions().V1beta1().Ingresses(),
+		IngressInformer:                 k8sI.Networking().V1().Ingresses(),
 		RolloutsInformer:                i.Argoproj().V1alpha1().Rollouts(),
 		IstioPrimaryDynamicClient:       dynamicClient,
 		IstioVirtualServiceInformer:     istioVirtualServiceInformer,
@@ -573,7 +573,7 @@ func (f *fixture) newController(resync resyncFunc) (*Controller, informers.Share
 		k8sI.Core().V1().Services().Informer().GetIndexer().Add(s)
 	}
 	for _, i := range f.ingressLister {
-		k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+		k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	}
 	for _, at := range f.analysisTemplateLister {
 		i.Argoproj().V1alpha1().AnalysisTemplates().Informer().GetIndexer().Add(at)
@@ -1612,7 +1612,7 @@ func TestGetReferencedIngressesALB(t *testing.T) {
 	})
 
 	t.Run("get referenced ALB ingress - success", func(t *testing.T) {
-		ingress := &extensionsv1beta1.Ingress{
+		ingress := &networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "alb-ingress-name",
 				Namespace: metav1.NamespaceDefault,
@@ -1649,7 +1649,7 @@ func TestGetReferencedIngressesNginx(t *testing.T) {
 	})
 
 	t.Run("get referenced Nginx ingress - success", func(t *testing.T) {
-		ingress := &extensionsv1beta1.Ingress{
+		ingress := &networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "nginx-ingress-name",
 				Namespace: metav1.NamespaceDefault,

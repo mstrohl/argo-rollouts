@@ -48,7 +48,7 @@ This should be `canary.trafficRouting.alb.rootService` (if specified), otherwise
 use `canary.stableService`.
 
 ```yaml
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rollouts-demo-ingress

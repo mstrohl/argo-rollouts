@@ -6,12 +6,12 @@ import (
 	"strconv"
 
 	"github.com/sirupsen/logrus"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
+	networkinglisters "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/utils/pointer"
 
 	"github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
@@ -36,7 +36,7 @@ type ReconcilerConfig struct {
 	Client         kubernetes.Interface
 	Recorder       record.EventRecorder
 	ControllerKind schema.GroupVersionKind
-	IngressLister  extensionslisters.IngressLister
+	IngressLister  networkinglisters.IngressLister
 	VerifyWeight   *bool
 }
 
@@ -99,7 +99,7 @@ func (r *Reconciler) SetWeight(desiredWeight int32, additionalDestinations ...v1
 	r.log.WithField("patch", string(patch)).Debug("applying ALB Ingress patch")
 	r.log.WithField("desiredWeight", desiredWeight).Info("updating ALB Ingress")
 	r.cfg.Recorder.Eventf(r.cfg.Rollout, record.EventOptions{EventReason: "PatchingALBIngress"}, "Updating Ingress `%s` to desiredWeight '%d'", ingressName, desiredWeight)
-	_, err = r.cfg.Client.ExtensionsV1beta1().Ingresses(ingress.Namespace).Patch(ctx, ingress.Name, types.MergePatchType, patch, metav1.PatchOptions{})
+	_, err = r.cfg.Client.networkingv1().Ingresses(ingress.Namespace).Patch(ctx, ingress.Name, types.MergePatchType, patch, metav1.PatchOptions{})
 	if err != nil {
 		r.log.WithField("err", err.Error()).Error("error patching alb ingress")
 		return fmt.Errorf("error patching alb ingress `%s`: %v", ingressName, err)
@@ -190,19 +190,19 @@ func (r *Reconciler) VerifyWeight(desiredWeight int32, additionalDestinations ..
 	return pointer.BoolPtr(numVerifiedWeights == 1+len(additionalDestinations)), nil
 }
 
-func calculatePatch(current *extensionsv1beta1.Ingress, desiredAnnotations map[string]string) ([]byte, bool, error) {
+func calculatePatch(current *networkingv1.Ingress, desiredAnnotations map[string]string) ([]byte, bool, error) {
 	// only compare Annotations
 	return diff.CreateTwoWayMergePatch(
-		&extensionsv1beta1.Ingress{
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: current.Annotations,
 			},
 		},
-		&extensionsv1beta1.Ingress{
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: desiredAnnotations,
 			},
-		}, extensionsv1beta1.Ingress{})
+		}, networkingv1.Ingress{})
 }
 
 func getForwardActionString(r *v1alpha1.Rollout, port int32, desiredWeight int32, additionalDestinations ...v1alpha1.WeightDestination) string {
@@ -247,7 +247,7 @@ func getForwardActionString(r *v1alpha1.Rollout, port int32, desiredWeight int32
 	return string(bytes)
 }
 
-func getDesiredAnnotations(current *extensionsv1beta1.Ingress, r *v1alpha1.Rollout, port int32, desiredWeight int32, additionalDestinations ...v1alpha1.WeightDestination) (map[string]string, error) {
+func getDesiredAnnotations(current *networkingv1.Ingress, r *v1alpha1.Rollout, port int32, desiredWeight int32, additionalDestinations ...v1alpha1.WeightDestination) (map[string]string, error) {
 	desired := current.DeepCopy().Annotations
 	key := ingressutil.ALBActionAnnotationKey(r)
 	desired[key] = getForwardActionString(r, port, desiredWeight, additionalDestinations...)

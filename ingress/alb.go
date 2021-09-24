@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
@@ -17,7 +17,7 @@ import (
 	logutil "github.com/argoproj/argo-rollouts/utils/log"
 )
 
-func (c *Controller) syncALBIngress(ingress *extensionsv1beta1.Ingress, rollouts []*v1alpha1.Rollout) error {
+func (c *Controller) syncALBIngress(ingress *networkingv1.Ingress, rollouts []*v1alpha1.Rollout) error {
 	ctx := context.TODO()
 	managedActions, err := ingressutil.NewManagedALBActions(ingress.Annotations[ingressutil.ManagedActionsAnnotation])
 	if err != nil {
@@ -54,11 +54,11 @@ func (c *Controller) syncALBIngress(ingress *extensionsv1beta1.Ingress, rollouts
 	if newManagedStr == "" {
 		delete(newIngress.Annotations, ingressutil.ManagedActionsAnnotation)
 	}
-	_, err = c.client.ExtensionsV1beta1().Ingresses(ingress.Namespace).Update(ctx, newIngress, metav1.UpdateOptions{})
+	_, err = c.client.networkingv1().Ingresses(ingress.Namespace).Update(ctx, newIngress, metav1.UpdateOptions{})
 	return err
 }
 
-func getResetALBActionStr(ingress *extensionsv1beta1.Ingress, action string) (string, error) {
+func getResetALBActionStr(ingress *networkingv1.Ingress, action string) (string, error) {
 	parts := strings.Split(action, ingressutil.ALBActionPrefix)
 	if len(parts) != 2 {
 		return "", fmt.Errorf("unable to parse action to get the service %s", action)

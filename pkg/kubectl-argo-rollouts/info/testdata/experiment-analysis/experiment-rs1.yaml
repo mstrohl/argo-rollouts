@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: ReplicaSet
 metadata:
   creationTimestamp: "2019-10-30T07:28:43Z"
@@ -16,7 +16,7 @@ metadata:
     name: rollout-experiment-analysis-6f646bf7b7-1-vcv27
     uid: e6d6a74d-fae6-11e9-a15b-42010aa80033
   resourceVersion: "29254095"
-  selfLink: /apis/extensions/v1beta1/namespaces/jesse-test/replicasets/rollout-experiment-analysis-6f646bf7b7-1-vcv27-baseline-7d768b8b5f
+  selfLink: /apis/networking.k8s.io/v1/namespaces/jesse-test/replicasets/rollout-experiment-analysis-6f646bf7b7-1-vcv27-baseline-7d768b8b5f
   uid: e6dbd25a-fae6-11e9-a15b-42010aa80033
 spec:
   replicas: 1

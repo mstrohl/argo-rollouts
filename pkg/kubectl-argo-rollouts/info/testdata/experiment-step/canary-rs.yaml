@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: ReplicaSet
 metadata:
   annotations:
@@ -19,7 +19,7 @@ metadata:
     name: canary-demo
     uid: 42b19359-01af-11ea-b38c-42010aa80083
   resourceVersion: "33430707"
-  selfLink: /apis/extensions/v1beta1/namespaces/jesse-test/replicasets/canary-demo-645d5dbc4c
+  selfLink: /apis/networking.k8s.io/v1/namespaces/jesse-test/replicasets/canary-demo-645d5dbc4c
   uid: 4be647c7-01af-11ea-b38c-42010aa80083
 spec:
   replicas: 0

@@ -61,7 +61,7 @@ spec:
 The referenced Ingress should be deployed with an ingress rule that matches the Rollout service:
 
 ```yaml
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ingress
@@ -90,7 +90,7 @@ annotation that splits traffic between the canary-service and stable-service, wi
 of 80 and 20 respectively:
 
 ```yaml
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ingress
@@ -334,7 +334,7 @@ spec:
 By default, Argo Rollout will operates on Ingresses with the annotation:
 
 ```yaml
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:

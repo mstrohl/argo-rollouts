@@ -10,7 +10,7 @@ import (
 	"github.com/argoproj/argo-rollouts/utils/unstructured"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
@@ -180,19 +180,19 @@ func getRollout() *v1alpha1.Rollout {
 	}
 }
 
-func getIngress() v1beta1.Ingress {
-	return v1beta1.Ingress{
+func getIngress() networkingv1.Ingress {
+	return networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "alb-ingress",
 		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{{
 				Host: "fakehost.example.com",
-				IngressRuleValue: v1beta1.IngressRuleValue{
-					HTTP: &v1beta1.HTTPIngressRuleValue{
-						Paths: []v1beta1.HTTPIngressPath{{
+				IngressRuleValue: networkingv1.IngressRuleValue{
+					HTTP: &networkingv1.HTTPIngressRuleValue{
+						Paths: []networkingv1.HTTPIngressPath{{
 							Path: "/foo",
-							Backend: v1beta1.IngressBackend{
+							Backend: networkingv1.IngressBackend{
 								ServiceName: "stable-service-name",
 								ServicePort: intstr.FromString("use-annotations"),
 							},
@@ -218,7 +218,7 @@ func getServiceWithType() ServiceWithType {
 func TestValidateRolloutReferencedResources(t *testing.T) {
 	refResources := ReferencedResources{
 		AnalysisTemplatesWithType: []AnalysisTemplatesWithType{getAnalysisTemplatesWithType()},
-		Ingresses:                 []v1beta1.Ingress{getIngress()},
+		Ingresses:                 []networkingv1.Ingress{getIngress()},
 		ServiceWithType:           []ServiceWithType{getServiceWithType()},
 		VirtualServices:           nil,
 	}

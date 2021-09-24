@@ -41,7 +41,7 @@ rule which has a backend targeting the Service referenced under `canary.stableSe
 In our example, that stable Service is named: `rollouts-demo-stable`:
 
 ```yaml
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rollouts-demo-stable
@@ -131,7 +131,7 @@ are added to the annotations.
 
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rollouts-demo-rollouts-demo-stable-canary

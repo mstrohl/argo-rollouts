@@ -182,7 +182,7 @@ spec:
     targetPort: 8080
 
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: networking-ingress
@@ -196,7 +196,7 @@ spec:
           servicePort: 80
 
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: extensions-ingress

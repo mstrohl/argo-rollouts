@@ -7,7 +7,7 @@ import (
 	"github.com/argoproj/argo-rollouts/utils/queue"
 
 	"github.com/stretchr/testify/assert"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kubeinformers "k8s.io/client-go/informers"
@@ -21,8 +21,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func newNginxIngress(name string, port int, serviceName string) *extensionsv1beta1.Ingress {
-	return &extensionsv1beta1.Ingress{
+func newNginxIngress(name string, port int, serviceName string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
@@ -30,16 +30,17 @@ func newNginxIngress(name string, port int, serviceName string) *extensionsv1bet
 				"kubernetes.io/ingress.class": "nginx",
 			},
 		},
-		Spec: extensionsv1beta1.IngressSpec{
-			Rules: []extensionsv1beta1.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			ingressClassName: nginx
+			Rules: []networkingv1.IngressRule{
 				{
 					Host: "fakehost.example.com",
-					IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-						HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-							Paths: []extensionsv1beta1.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path: "/foo",
-									Backend: extensionsv1beta1.IngressBackend{
+									Backend: networkingv1.IngressBackend{
 										ServiceName: serviceName,
 										ServicePort: intstr.FromInt(port),
 									},
@@ -53,7 +54,7 @@ func newNginxIngress(name string, port int, serviceName string) *extensionsv1bet
 	}
 }
 
-func newFakeIngressController(ing *extensionsv1beta1.Ingress, rollout *v1alpha1.Rollout) (*Controller, *k8sfake.Clientset, map[string]int) {
+func newFakeIngressController(ing *networkingv1.Ingress, rollout *v1alpha1.Rollout) (*Controller, *k8sfake.Clientset, map[string]int) {
 	client := fake.NewSimpleClientset()
 	if rollout != nil {
 		client = fake.NewSimpleClientset(rollout)
@@ -70,7 +71,7 @@ func newFakeIngressController(ing *extensionsv1beta1.Ingress, rollout *v1alpha1.
 
 	c := NewController(ControllerConfig{
 		Client:           kubeclient,
-		IngressInformer:  k8sI.Extensions().V1beta1().Ingresses(),
+		IngressInformer:  k8sI.Networking().V1().Ingresses(),
 		IngressWorkQueue: ingressWorkqueue,
 
 		RolloutsInformer: i.Argoproj().V1alpha1().Rollouts(),
@@ -101,7 +102,7 @@ func newFakeIngressController(ing *extensionsv1beta1.Ingress, rollout *v1alpha1.
 	}
 
 	if ing != nil {
-		k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(ing)
+		k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(ing)
 	}
 	if rollout != nil {
 		i.Argoproj().V1alpha1().Rollouts().Informer().GetIndexer().Add(rollout)

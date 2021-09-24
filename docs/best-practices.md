@@ -19,7 +19,7 @@ to the ingress rules so that it is possible to specifically reach to the desired
 pods or stable pods.
 
 ```yaml
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: guestbook

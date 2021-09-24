@@ -6,13 +6,13 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
+	networkinglisters "k8s.io/client-go/listers/networking/v1"
 
 	"github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	"github.com/argoproj/argo-rollouts/utils/defaults"
@@ -31,7 +31,7 @@ type ReconcilerConfig struct {
 	Client         kubernetes.Interface
 	Recorder       record.EventRecorder
 	ControllerKind schema.GroupVersionKind
-	IngressLister  extensionslisters.IngressLister
+	IngressLister  networkinglisters.IngressLister
 }
 
 // Reconciler holds required fields to reconcile Nginx resources
@@ -54,7 +54,7 @@ func (r *Reconciler) Type() string {
 }
 
 // canaryIngress returns the desired state of the canary ingress
-func (r *Reconciler) canaryIngress(stableIngress *extensionsv1beta1.Ingress, name string, desiredWeight int32) (*extensionsv1beta1.Ingress, error) {
+func (r *Reconciler) canaryIngress(stableIngress *networkingv1.Ingress, name string, desiredWeight int32) (*networkingv1.Ingress, error) {
 	stableIngressName := r.cfg.Rollout.Spec.Strategy.Canary.TrafficRouting.Nginx.StableIngress
 	stableServiceName := r.cfg.Rollout.Spec.Strategy.Canary.StableService
 	canaryServiceName := r.cfg.Rollout.Spec.Strategy.Canary.CanaryService
@@ -62,13 +62,13 @@ func (r *Reconciler) canaryIngress(stableIngress *extensionsv1beta1.Ingress, nam
 
 	// Set up canary ingress resource, we do *not* have to duplicate `spec.tls` in a canary, only
 	// `spec.rules`
-	desiredCanaryIngress := &extensionsv1beta1.Ingress{
+	desiredCanaryIngress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Annotations: map[string]string{},
 		},
-		Spec: extensionsv1beta1.IngressSpec{
-			Rules: make([]extensionsv1beta1.IngressRule, 0), // We have no way of knowing yet how many rules there will be
+		Spec: networkingv1.IngressSpec{
+			Rules: make([]networkingv1.IngressRule, 0), // We have no way of knowing yet how many rules there will be
 		},
 	}
 
@@ -125,23 +125,23 @@ func (r *Reconciler) canaryIngress(stableIngress *extensionsv1beta1.Ingress, nam
 }
 
 // compareCanaryIngresses compares the current canaryIngress with the desired one and returns a patch
-func compareCanaryIngresses(current *extensionsv1beta1.Ingress, desired *extensionsv1beta1.Ingress) ([]byte, bool, error) {
+func compareCanaryIngresses(current *networkingv1.Ingress, desired *networkingv1.Ingress) ([]byte, bool, error) {
 	// only compare Spec, Annotations, and Labels
 	return diff.CreateTwoWayMergePatch(
-		&extensionsv1beta1.Ingress{
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: current.Annotations,
 				Labels:      current.Labels,
 			},
 			Spec: current.Spec,
 		},
-		&extensionsv1beta1.Ingress{
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: desired.Annotations,
 				Labels:      desired.Labels,
 			},
 			Spec: desired.Spec,
-		}, extensionsv1beta1.Ingress{})
+		}, networkingv1.Ingress{})
 }
 
 // SetWeight modifies Nginx Ingress resources to reach desired state
@@ -179,7 +179,7 @@ func (r *Reconciler) SetWeight(desiredWeight int32, additionalDestinations ...v1
 
 	if !canaryIngressExists {
 		r.cfg.Recorder.Eventf(r.cfg.Rollout, record.EventOptions{EventReason: "CreatingCanaryIngress"}, "Creating canary ingress `%s` with weight `%d`", canaryIngressName, desiredWeight)
-		_, err = r.cfg.Client.ExtensionsV1beta1().Ingresses(r.cfg.Rollout.Namespace).Create(ctx, desiredCanaryIngress, metav1.CreateOptions{})
+		_, err = r.cfg.Client.networkingv1().Ingresses(r.cfg.Rollout.Namespace).Create(ctx, desiredCanaryIngress, metav1.CreateOptions{})
 		if err == nil {
 			return nil
 		}
@@ -190,7 +190,7 @@ func (r *Reconciler) SetWeight(desiredWeight int32, additionalDestinations ...v1
 		// Canary ingress was created by a different reconcile call before this one could complete (race)
 		// This means we just read it from the API now (instead of cache) and continue with the normal
 		// flow we take when the canary already existed.
-		canaryIngress, err = r.cfg.Client.ExtensionsV1beta1().Ingresses(r.cfg.Rollout.Namespace).Get(ctx, canaryIngressName, metav1.GetOptions{})
+		canaryIngress, err = r.cfg.Client.networkingv1().Ingresses(r.cfg.Rollout.Namespace).Get(ctx, canaryIngressName, metav1.GetOptions{})
 		if err != nil {
 			r.log.WithField(logutil.IngressKey, canaryIngressName).Error(err.Error())
 			return fmt.Errorf("error retrieving canary ingress `%s` from api: %v", canaryIngressName, err)
@@ -221,7 +221,7 @@ func (r *Reconciler) SetWeight(desiredWeight int32, additionalDestinations ...v1
 	r.log.WithField(logutil.IngressKey, canaryIngressName).WithField("desiredWeight", desiredWeight).Info("updating canary Ingress")
 	r.cfg.Recorder.Eventf(r.cfg.Rollout, record.EventOptions{EventReason: "PatchingCanaryIngress"}, "Updating Ingress `%s` to desiredWeight '%d'", canaryIngressName, desiredWeight)
 
-	_, err = r.cfg.Client.ExtensionsV1beta1().Ingresses(r.cfg.Rollout.Namespace).Patch(ctx, canaryIngressName, types.MergePatchType, patch, metav1.PatchOptions{})
+	_, err = r.cfg.Client.networkingv1().Ingresses(r.cfg.Rollout.Namespace).Patch(ctx, canaryIngressName, types.MergePatchType, patch, metav1.PatchOptions{})
 	if err != nil {
 		r.log.WithField(logutil.IngressKey, canaryIngressName).WithField("err", err.Error()).Error("error patching canary ingress")
 		return fmt.Errorf("error patching canary ingress `%s`: %v", canaryIngressName, err)

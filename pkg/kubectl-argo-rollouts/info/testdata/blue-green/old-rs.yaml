@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: ReplicaSet
 metadata:
   annotations:
@@ -20,7 +20,7 @@ metadata:
     name: bluegreen-demo
     uid: fe2872f3-f79f-11e9-a15b-42010aa80033
   resourceVersion: "27401999"
-  selfLink: /apis/extensions/v1beta1/namespaces/jesse-test/replicasets/bluegreen-demo-746d5fddf6
+  selfLink: /apis/networking.k8s.io/v1/namespaces/jesse-test/replicasets/bluegreen-demo-746d5fddf6
   uid: 0dd183de-f7ce-11e9-a15b-42010aa80033
 spec:
   replicas: 0

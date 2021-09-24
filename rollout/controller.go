@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,11 +22,11 @@ import (
 	"k8s.io/client-go/dynamic"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
-	extensionsinformers "k8s.io/client-go/informers/extensions/v1beta1"
+	networkinginformers "k8s.io/client-go/informers/networking/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1"
 	v1 "k8s.io/client-go/listers/core/v1"
-	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
+	networkinglisters "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubectl/pkg/util/slice"
@@ -95,7 +95,7 @@ type ControllerConfig struct {
 	ClusterAnalysisTemplateInformer informers.ClusterAnalysisTemplateInformer
 	ReplicaSetInformer              appsinformers.ReplicaSetInformer
 	ServicesInformer                coreinformers.ServiceInformer
-	IngressInformer                 extensionsinformers.IngressInformer
+	IngressInformer                 networkinginformers.IngressInformer
 	RolloutsInformer                informers.RolloutInformer
 	IstioPrimaryDynamicClient       dynamic.Interface
 	IstioVirtualServiceInformer     cache.SharedIndexInformer
@@ -129,7 +129,7 @@ type reconcilerBase struct {
 	rolloutsSynced                cache.InformerSynced
 	rolloutsIndexer               cache.Indexer
 	servicesLister                v1.ServiceLister
-	ingressesLister               extensionslisters.IngressLister
+	ingressesLister               networkinglisters.IngressLister
 	experimentsLister             listers.ExperimentLister
 	analysisRunLister             listers.AnalysisRunLister
 	analysisTemplateLister        listers.AnalysisTemplateLister
@@ -723,8 +723,8 @@ func (c *rolloutContext) getReferencedAnalysisTemplates(rollout *v1alpha1.Rollou
 	}, nil
 }
 
-func (c *rolloutContext) getReferencedIngresses() (*[]v1beta1.Ingress, error) {
-	ingresses := []v1beta1.Ingress{}
+func (c *rolloutContext) getReferencedIngresses() (*[]networkingv1.Ingress, error) {
+	ingresses := []networkingv1.Ingress{}
 	canary := c.rollout.Spec.Strategy.Canary
 	fldPath := field.NewPath("spec", "strategy", "canary", "trafficRouting")
 	if canary != nil && canary.TrafficRouting != nil {

@@ -15,7 +15,7 @@ spec:
   selector:
     app: rollout-canary
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rollouts-demo-stable

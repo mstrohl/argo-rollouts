@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,22 +23,22 @@ import (
 	"github.com/argoproj/argo-rollouts/utils/record"
 )
 
-func ingress(name string, port int, serviceName string) *extensionsv1beta1.Ingress {
-	return &extensionsv1beta1.Ingress{
+func ingress(name string, port int, serviceName string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: extensionsv1beta1.IngressSpec{
-			Rules: []extensionsv1beta1.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
 				{
 					Host: "fakehost.example.com",
-					IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-						HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-							Paths: []extensionsv1beta1.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path: "/foo",
-									Backend: extensionsv1beta1.IngressBackend{
+									Backend: networkingv1.IngressBackend{
 										ServiceName: serviceName,
 										ServicePort: intstr.FromInt(port),
 									},
@@ -52,7 +52,7 @@ func ingress(name string, port int, serviceName string) *extensionsv1beta1.Ingre
 	}
 }
 
-func setIngressOwnerRef(ing *extensionsv1beta1.Ingress, rollout *v1alpha1.Rollout) {
+func setIngressOwnerRef(ing *networkingv1.Ingress, rollout *v1alpha1.Rollout) {
 	ing.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(rollout, schema.GroupVersionKind{Group: "argoproj.io", Version: "v1alpha1", Kind: "Rollout"})})
 }
 
@@ -78,7 +78,7 @@ func fakeRollout(stableSvc, canarySvc, stableIng string) *v1alpha1.Rollout {
 	}
 }
 
-func checkBackendService(t *testing.T, ing *extensionsv1beta1.Ingress, serviceName string) {
+func checkBackendService(t *testing.T, ing *networkingv1.Ingress, serviceName string) {
 	for ir := 0; ir < len(ing.Spec.Rules); ir++ {
 		for ip := 0; ip < len(ing.Spec.Rules[ir].HTTP.Paths); ip++ {
 			assert.Equal(t, serviceName, ing.Spec.Rules[ir].HTTP.Paths[ip].Backend.ServiceName)
@@ -221,7 +221,7 @@ func TestReconcileStableIngressNotFound(t *testing.T) {
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -234,13 +234,13 @@ func TestReconcileStableIngressFound(t *testing.T) {
 
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -250,7 +250,7 @@ func TestReconcileStableIngressFound(t *testing.T) {
 	if !t.Failed() {
 		// Avoid "index out of range" errors
 		assert.Equal(t, "create", actions[0].GetVerb(), "action: create canary ingress")
-		assert.Equal(t, schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}, actions[0].GetResource(), "action: create canary ingress")
+		assert.Equal(t, schema.GroupVersionResource{Group: "networking", Version: "v1", Resource: "ingresses"}, actions[0].GetResource(), "action: create canary ingress")
 	}
 }
 
@@ -260,13 +260,13 @@ func TestReconcileStableIngressFoundWrongBackend(t *testing.T) {
 
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -281,14 +281,14 @@ func TestReconcileStableAndCanaryIngressFoundNoOwner(t *testing.T) {
 
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -304,15 +304,15 @@ func TestReconcileStableAndCanaryIngressFoundBadOwner(t *testing.T) {
 	setIngressOwnerRef(canaryIngress, otherRollout)
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
 
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -330,14 +330,14 @@ func TestReconcileStableAndCanaryIngressFoundPatch(t *testing.T) {
 	setIngressOwnerRef(canaryIngress, rollout)
 	client := fake.NewSimpleClientset(canaryIngress)
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -347,7 +347,7 @@ func TestReconcileStableAndCanaryIngressFoundPatch(t *testing.T) {
 	if !t.Failed() {
 		// Avoid "index out of range" errors
 		assert.Equal(t, "patch", actions[0].GetVerb(), "action: patch canary ingress")
-		assert.Equal(t, schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}, actions[0].GetResource(), "action: patch canary ingress")
+		assert.Equal(t, schema.GroupVersionResource{Group: "networking", Version: "v1", Resource: "ingresses"}, actions[0].GetResource(), "action: patch canary ingress")
 	}
 }
 
@@ -362,15 +362,15 @@ func TestReconcileStableAndCanaryIngressFoundNoChange(t *testing.T) {
 	})
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(canaryIngress)
 
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	err := r.SetWeight(10)
@@ -388,14 +388,14 @@ func TestReconcileCanaryCreateError(t *testing.T) {
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
 
 	// stableIngress exists
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
 
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	// Return with AlreadyExists error to create for canary
@@ -411,7 +411,7 @@ func TestReconcileCanaryCreateError(t *testing.T) {
 	if !t.Failed() {
 		// Avoid "index out of range" errors
 		assert.Equal(t, "create", actions[0].GetVerb(), "action: create canary ingress")
-		assert.Equal(t, schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}, actions[0].GetResource(), "action: create canary ingress")
+		assert.Equal(t, schema.GroupVersionResource{Group: "networking", Version: "v1", Resource: "ingresses"}, actions[0].GetResource(), "action: create canary ingress")
 	}
 }
 
@@ -430,14 +430,14 @@ func TestReconcileCanaryCreateErrorAlreadyExistsPatch(t *testing.T) {
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
 
 	// stableIngress exists
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(stableIngress)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(stableIngress)
 
 	r := NewReconciler(ReconcilerConfig{
 		Rollout:        rollout,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 
 	// Return with AlreadyExists error to create for canary
@@ -460,10 +460,10 @@ func TestReconcileCanaryCreateErrorAlreadyExistsPatch(t *testing.T) {
 	if !t.Failed() {
 		// Avoid "index out of range" errors
 		assert.Equal(t, "create", actions[0].GetVerb(), "action: create canary ingress")
-		assert.Equal(t, schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}, actions[0].GetResource(), "action: create canary ingress")
+		assert.Equal(t, schema.GroupVersionResource{Group: "networking", Version: "v1", Resource: "ingresses"}, actions[0].GetResource(), "action: create canary ingress")
 		assert.Equal(t, "get", actions[1].GetVerb(), "action: get canary ingress")
-		assert.Equal(t, schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}, actions[1].GetResource(), "action: get canary ingress")
+		assert.Equal(t, schema.GroupVersionResource{Group: "networking", Version: "v1", Resource: "ingresses"}, actions[1].GetResource(), "action: get canary ingress")
 		assert.Equal(t, "patch", actions[2].GetVerb(), "action: patch canary ingress")
-		assert.Equal(t, schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}, actions[2].GetResource(), "action: patch canary ingress")
+		assert.Equal(t, schema.GroupVersionResource{Group: "networking", Version: "v1", Resource: "ingresses"}, actions[2].GetResource(), "action: patch canary ingress")
 	}
 }

@@ -19,7 +19,7 @@ metadata:
     name: canary-demo
     uid: b350ba76-f6ed-11e9-a15b-42010aa80033
   resourceVersion: "28253392"
-  selfLink: /apis/extensions/v1beta1/namespaces/jesse-test/replicasets/canary-demo-65fb5ffc84
+  selfLink: /apis/networking.k8s.io/v1/namespaces/jesse-test/replicasets/canary-demo-65fb5ffc84
   uid: bd2a2b70-f93e-11e9-a15b-42010aa80033
 spec:
   replicas: 1

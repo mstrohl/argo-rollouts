@@ -8,9 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	extensionsinformers "k8s.io/client-go/informers/extensions/v1beta1"
+	networkinginformers "k8s.io/client-go/informers/networking/v1"
 	"k8s.io/client-go/kubernetes"
-	extentionslisters "k8s.io/client-go/listers/extensions/v1beta1"
+	networkinglisters "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util"
@@ -32,7 +32,7 @@ const (
 // ControllerConfig describes the data required to instantiate a new ingress controller
 type ControllerConfig struct {
 	Client           kubernetes.Interface
-	IngressInformer  extensionsinformers.IngressInformer
+	IngressInformer  networkinginformers.IngressInformer
 	IngressWorkQueue workqueue.RateLimitingInterface
 
 	RolloutsInformer informers.RolloutInformer
@@ -47,7 +47,7 @@ type ControllerConfig struct {
 type Controller struct {
 	client           kubernetes.Interface
 	rolloutsIndexer  cache.Indexer
-	ingressLister    extentionslisters.IngressLister
+	ingressLister    networkinglisters.IngressLister
 	ingressWorkqueue workqueue.RateLimitingInterface
 
 	metricServer   *metrics.MetricsServer

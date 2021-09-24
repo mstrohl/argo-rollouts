@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -36,12 +36,12 @@ func albActionAnnotation(stable string) string {
 	return fmt.Sprintf("%s%s%s", ingressutil.ALBIngressAnnotation, ingressutil.ALBActionPrefix, stable)
 }
 
-func newALBIngress(name string, port int, serviceName string, rollout string) *extensionsv1beta1.Ingress {
+func newALBIngress(name string, port int, serviceName string, rollout string) *networkingv1.Ingress {
 	canaryService := fmt.Sprintf("%s-canary", serviceName)
 	albActionKey := albActionAnnotation(serviceName)
 	managedBy := fmt.Sprintf("%s:%s", rollout, albActionKey)
 	action := fmt.Sprintf(actionTemplate, serviceName, port, canaryService, port)
-	return &extensionsv1beta1.Ingress{
+	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
@@ -51,16 +51,16 @@ func newALBIngress(name string, port int, serviceName string, rollout string) *e
 				ingressutil.ManagedActionsAnnotation: managedBy,
 			},
 		},
-		Spec: extensionsv1beta1.IngressSpec{
-			Rules: []extensionsv1beta1.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
 				{
 					Host: "fakehost.example.com",
-					IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-						HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-							Paths: []extensionsv1beta1.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path: "/foo",
-									Backend: extensionsv1beta1.IngressBackend{
+									Backend: networkingv1.IngressBackend{
 										ServiceName: serviceName,
 										ServicePort: intstr.FromString("use-annotations"),
 									},

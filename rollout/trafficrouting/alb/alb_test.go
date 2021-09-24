@@ -9,7 +9,7 @@ import (
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,7 +73,7 @@ func albActionAnnotation(stable string) string {
 	return fmt.Sprintf("%s%s%s", ingressutil.ALBIngressAnnotation, ingressutil.ALBActionPrefix, stable)
 }
 
-func ingress(name string, stableSvc, canarySvc string, port, weight int32, managedBy string) *extensionsv1beta1.Ingress {
+func ingress(name string, stableSvc, canarySvc string, port, weight int32, managedBy string) *networkingv1.Ingress {
 	managedByValue := fmt.Sprintf("%s:%s", managedBy, albActionAnnotation(stableSvc))
 	action := fmt.Sprintf(actionTemplate, canarySvc, port, weight, stableSvc, port, 100-weight)
 	var a ingressutil.ALBAction
@@ -82,7 +82,7 @@ func ingress(name string, stableSvc, canarySvc string, port, weight int32, manag
 		panic(err)
 	}
 
-	i := &extensionsv1beta1.Ingress{
+	i := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
@@ -91,14 +91,14 @@ func ingress(name string, stableSvc, canarySvc string, port, weight int32, manag
 				ingressutil.ManagedActionsAnnotation: managedByValue,
 			},
 		},
-		Spec: extensionsv1beta1.IngressSpec{
-			Rules: []extensionsv1beta1.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
 				{
-					IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-						HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-							Paths: []extensionsv1beta1.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
-									Backend: extensionsv1beta1.IngressBackend{
+									Backend: networkingv1.IngressBackend{
 										ServiceName: stableSvc,
 										ServicePort: intstr.Parse("use-annotation"),
 									},
@@ -135,7 +135,7 @@ func TestIngressNotFound(t *testing.T) {
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 	err = r.SetWeight(10)
@@ -148,13 +148,13 @@ func TestServiceNotFoundInIngress(t *testing.T) {
 	i := ingress("ingress", "stable-service", "canary-svc", 443, 50, ro.Name)
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 	err = r.SetWeight(10)
@@ -166,13 +166,13 @@ func TestNoChanges(t *testing.T) {
 	i := ingress("ingress", "stable-svc", "canary-svc", 443, 10, ro.Name)
 	client := fake.NewSimpleClientset()
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 	err = r.SetWeight(10)
@@ -186,13 +186,13 @@ func TestErrorOnInvalidManagedBy(t *testing.T) {
 	i.Annotations[ingressutil.ManagedActionsAnnotation] = "test"
 	client := fake.NewSimpleClientset(i)
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 	err = r.SetWeight(10)
@@ -205,13 +205,13 @@ func TestSetInitialDesiredWeight(t *testing.T) {
 	i.Annotations = map[string]string{}
 	client := fake.NewSimpleClientset(i)
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 	err = r.SetWeight(10)
@@ -224,13 +224,13 @@ func TestUpdateDesiredWeight(t *testing.T) {
 	i := ingress("ingress", "stable-svc", "canary-svc", 443, 5, ro.Name)
 	client := fake.NewSimpleClientset(i)
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 	err = r.SetWeight(10)
@@ -252,13 +252,13 @@ func TestErrorPatching(t *testing.T) {
 	client := fake.NewSimpleClientset(i)
 	client.ReactionChain = nil
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 
@@ -304,13 +304,13 @@ func TestVerifyWeight(t *testing.T) {
 
 		client := fake.NewSimpleClientset(i)
 		k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-		k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+		k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 		r, err := NewReconciler(ReconcilerConfig{
 			Rollout:        ro,
 			Client:         client,
 			Recorder:       record.NewFakeEventRecorder(),
 			ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-			IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+			IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 			VerifyWeight:   pointer.BoolPtr(true),
 		})
 		assert.NoError(t, err)
@@ -381,13 +381,13 @@ func TestSetWeightWithMultipleBackends(t *testing.T) {
 	i := ingress("ingress", "stable-svc", "canary-svc", 443, 0, ro.Name)
 	client := fake.NewSimpleClientset(i)
 	k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-	k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+	k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 	r, err := NewReconciler(ReconcilerConfig{
 		Rollout:        ro,
 		Client:         client,
 		Recorder:       record.NewFakeEventRecorder(),
 		ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-		IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+		IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 	})
 	assert.NoError(t, err)
 
@@ -410,7 +410,7 @@ func TestSetWeightWithMultipleBackends(t *testing.T) {
 	assert.Len(t, client.Actions(), 1)
 	assert.Equal(t, "patch", actions[0].GetVerb())
 
-	patchedI := extensionsv1beta1.Ingress{}
+	patchedI := networkingv1.Ingress{}
 	err = json.Unmarshal(actions[0].(k8stesting.PatchAction).GetPatch(), &patchedI)
 	assert.Nil(t, err)
 
@@ -448,13 +448,13 @@ func TestVerifyWeightWithAdditionalDestinations(t *testing.T) {
 
 		client := fake.NewSimpleClientset(i)
 		k8sI := kubeinformers.NewSharedInformerFactory(client, 0)
-		k8sI.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(i)
+		k8sI.Networking().V1().Ingresses().Informer().GetIndexer().Add(i)
 		r, err := NewReconciler(ReconcilerConfig{
 			Rollout:        ro,
 			Client:         client,
 			Recorder:       record.NewFakeEventRecorder(),
 			ControllerKind: schema.GroupVersionKind{Group: "foo", Version: "v1", Kind: "Bar"},
-			IngressLister:  k8sI.Extensions().V1beta1().Ingresses().Lister(),
+			IngressLister:  k8sI.Networking().V1().Ingresses().Lister(),
 			VerifyWeight:   pointer.BoolPtr(true),
 		})
 		assert.NoError(t, err)

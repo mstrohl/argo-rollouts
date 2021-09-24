@@ -12,7 +12,7 @@ import (
 
 	ingressutil "github.com/argoproj/argo-rollouts/utils/ingress"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -58,7 +58,7 @@ type ServiceWithType struct {
 
 type ReferencedResources struct {
 	AnalysisTemplatesWithType []AnalysisTemplatesWithType
-	Ingresses                 []v1beta1.Ingress
+	Ingresses                 []networkingv1.Ingress
 	ServiceWithType           []ServiceWithType
 	VirtualServices           []unstructured.Unstructured
 	AmbassadorMappings        []unstructured.Unstructured
@@ -186,7 +186,7 @@ func setArgValuePlaceHolder(Args []v1alpha1.Argument) {
 	}
 }
 
-func ValidateIngress(rollout *v1alpha1.Rollout, ingress v1beta1.Ingress) field.ErrorList {
+func ValidateIngress(rollout *v1alpha1.Rollout, ingress networkingv1.Ingress) field.ErrorList {
 	allErrs := field.ErrorList{}
 	fldPath := field.NewPath("spec", "strategy", "canary", "trafficRouting")
 	var ingressName string
